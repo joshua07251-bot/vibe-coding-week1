@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1주차 · 내 상품·서비스 홍보 이미지를 반복 제작하는 앱 만들기</title>
+<style>
+  :root{
+    --bg:#0f2a31; --paper:#fbfaf7; --ink:#15222c; --sub:#5e6d7a; --line:#dfe4e8;
+    --main:#1f5f6b; --main2:#2c7c88; --soft:#e5f0f1; --accent:#d0602f; --accent-soft:#fcece4;
+    --ok:#2f7d4f; --ok-soft:#e5f3ea; --no:#b23b3b; --no-soft:#f9e6e6; --gold:#f2c14e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b1d22;font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;color:var(--ink);word-break:keep-all}
+  #viewport{position:fixed;inset:0;overflow:hidden}
+  #stage{width:1600px;height:900px;position:absolute;left:50%;top:50%;transform-origin:center center}
+  .slide{position:absolute;inset:0;background:var(--paper);padding:84px 110px 90px;display:none;flex-direction:column;overflow:hidden}
+  .slide.active{display:flex;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* typography */
+  .kicker{font-size:26px;font-weight:700;color:var(--main);letter-spacing:.02em;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+  .kicker .pill{background:var(--soft);padding:6px 16px;border-radius:999px}
+  .kicker .pill.orange{background:var(--accent-soft);color:var(--accent)}
+  h1{font-size:76px;line-height:1.25;margin:0;letter-spacing:-.01em}
+  h2{font-size:58px;line-height:1.3;margin:0 0 34px;letter-spacing:-.01em}
+  .big{font-size:40px;line-height:1.55}
+  .mid{font-size:34px;line-height:1.55}
+  .small{font-size:26px;line-height:1.5;color:var(--sub)}
+  b.hl,.hl{color:var(--accent)}
+  .main{color:var(--main)}
+  .center{text-align:center;justify-content:center;align-items:center}
+  .grow{flex:1}
+  .row{display:flex;gap:28px}
+  .col{display:flex;flex-direction:column;gap:22px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+
+  /* boxes */
+  .box{background:#fff;border:2px solid var(--line);border-radius:24px;padding:30px 34px}
+  .box h3{font-size:34px;margin:0 0 12px}
+  .box p{font-size:28px;line-height:1.5;margin:0;color:var(--sub)}
+  .grow > .box{display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+  .grow > .box > ul{align-self:stretch}
+  .box.main{border-color:var(--main);background:var(--soft)}
+  .box.accent{border-color:var(--accent);background:var(--accent-soft)}
+  .box.ok{border-color:var(--ok);background:var(--ok-soft)}
+  .box.no{border-color:var(--no);background:var(--no-soft)}
+  .label{display:inline-block;font-size:24px;font-weight:700;padding:6px 16px;border-radius:12px;margin-bottom:14px}
+  .label.no{background:var(--no);color:#fff}
+  .label.ok{background:var(--ok);color:#fff}
+  .label.main{background:var(--main);color:#fff}
+  .label.accent{background:var(--accent);color:#fff}
+
+  ul.list{margin:0;padding:0;list-style:none}
+  ul.list li{font-size:36px;line-height:1.5;padding:14px 0 14px 56px;position:relative;border-bottom:2px dashed var(--line)}
+  ul.list li:last-child{border-bottom:0}
+  ul.list li::before{content:"";position:absolute;left:8px;top:28px;width:22px;height:22px;border-radius:50%;background:var(--main)}
+  ul.list.x li::before{background:none;content:"✕";color:var(--no);font-weight:800;top:14px;width:auto;height:auto;font-size:34px}
+  ul.list.check li::before{background:none;content:"✓";color:var(--ok);font-weight:800;top:12px;width:auto;height:auto;font-size:38px}
+
+  .steps{display:flex;gap:16px;align-items:stretch}
+  .stepbox{flex:1;background:#fff;border:2px solid var(--line);border-radius:22px;padding:24px 18px;text-align:center;position:relative}
+  .stepbox .n{width:58px;height:58px;border-radius:50%;background:var(--main);color:#fff;font-size:30px;font-weight:800;display:grid;place-items:center;margin:0 auto 14px}
+  .stepbox .t{font-size:29px;font-weight:700;line-height:1.35}
+  .stepbox.now{border-color:var(--accent);background:var(--accent-soft)}
+  .stepbox.now .n{background:var(--accent)}
+
+  /* prompt */
+  .prompt{background:#14232e;color:#eef4f8;border-radius:24px;padding:30px 38px;font-size:30px;line-height:1.6;white-space:pre-wrap;position:relative;flex:1;overflow:auto}
+  .prompt .em{color:var(--gold)}
+  .copy{position:absolute;top:18px;right:18px;font:inherit;font-size:20px;background:#2d4556;color:#fff;border:1px solid #47657a;border-radius:12px;padding:8px 16px;cursor:pointer}
+  .copy.done{background:var(--ok);border-color:var(--ok)}
+
+  /* section cover */
+  .slide.cover{background:linear-gradient(135deg,#123940,#1f5f6b 55%,#2c7c88);color:#fff}
+  .slide.cover .kicker{color:#cfe6e9}
+  .slide.cover .kicker .pill{background:rgba(255,255,255,.14)}
+  .slide.cover .small{color:#cfe6e9}
+  .slide.part{background:var(--main);color:#fff;justify-content:center}
+  .slide.part .pnum{font-size:34px;font-weight:700;color:#bfe0e4;margin-bottom:18px}
+  .slide.part h1{font-size:88px}
+  .slide.part p{font-size:36px;color:#d7ecee;margin:26px 0 0}
+  .slide.practice{background:#fff8f3}
+  .slide.practice .kicker{color:var(--accent)}
+
+  /* app mock */
+  .mock{display:grid;grid-template-columns:1fr 430px;gap:34px;background:#fff;border:2px solid var(--line);border-radius:26px;padding:30px;flex:1}
+  .field{margin-bottom:14px}
+  .field span{display:block;font-size:20px;color:var(--sub);margin-bottom:4px}
+  .field div{border:2px solid var(--line);border-radius:12px;padding:8px 14px;font-size:22px}
+  .pcard{background:#1f5f6b;color:#fff;border-radius:22px;overflow:hidden;display:flex;flex-direction:column;aspect-ratio:4/5}
+  .pcard .photo{height:44%;background:linear-gradient(135deg,#e8ddd0,#c9b8a3);display:grid;place-items:center;color:#6d5a45;font-size:22px;position:relative}
+  .pcard .photo::after{content:"";position:absolute;width:120px;height:150px;border-radius:14px;background:linear-gradient(160deg,#f6f1ea,#d8c8b3);box-shadow:0 10px 20px rgba(0,0,0,.18)}
+  .pcard .in{padding:20px 24px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .pcard .biz{font-size:16px;opacity:.8}
+  .pcard .ttl{font-size:28px;font-weight:800;line-height:1.25}
+  .pcard .desc{font-size:17px;opacity:.9}
+  .pcard .pts{font-size:16px;line-height:1.5;opacity:.95}
+  .pcard .cta{margin-top:auto;background:#fff;color:#1f5f6b;border-radius:12px;padding:10px 14px;font-size:17px;font-weight:700}
+  .btnmock{display:inline-block;background:var(--main);color:#fff;border-radius:12px;padding:10px 20px;font-size:22px;font-weight:700;margin-right:10px}
+
+  table.t{border-collapse:collapse;width:100%;font-size:30px}
+  table.t td{padding:14px 18px;border-bottom:2px solid var(--line);vertical-align:top}
+  table.t td:first-child{color:var(--sub);width:300px;font-weight:600}
+
+  .arrow{font-size:48px;color:var(--sub);display:grid;place-items:center}
+  .quote{font-size:44px;line-height:1.5;font-weight:700;border-left:10px solid var(--accent);padding:10px 0 10px 36px}
+  .tag{display:inline-block;font-size:22px;font-weight:700;color:var(--main);background:var(--soft);border-radius:999px;padding:4px 14px}
+
+  /* chrome */
+  #bar{position:fixed;left:0;bottom:0;height:6px;background:var(--accent);transition:width .3s;z-index:5}
+  #num{position:fixed;right:22px;bottom:16px;color:#8fb3b9;font-size:16px;z-index:5;font-variant-numeric:tabular-nums}
+  #hint{position:fixed;left:22px;bottom:16px;color:#5f8288;font-size:14px;z-index:5}
+  #notes{position:fixed;left:50%;transform:translateX(-50%);bottom:28px;max-width:1100px;width:calc(100% - 80px);background:rgba(10,24,29,.94);color:#e6f1f3;border:1px solid #2f5961;border-radius:14px;padding:14px 20px;font-size:18px;line-height:1.6;display:none;z-index:6}
+  #notes.on{display:block}
+  #notes b{color:var(--gold)}
+  .note{display:none}
+  .footer-mark{position:absolute;left:110px;bottom:36px;font-size:20px;color:#9aa8b3}
+  .slide.cover .footer-mark,.slide.part .footer-mark{color:rgba(255,255,255,.5)}
+
+  @media print{
+    html,body{overflow:visible;height:auto;background:#fff}
+    #viewport{position:static;display:block}
+    #stage{transform:none!important;width:auto;height:auto;position:static}
+    .slide{display:flex!important;position:relative;width:1600px;height:900px;page-break-after:always;animation:none}
+    #bar,#num,#hint,#notes,.copy{display:none!important}
+    @page{size:1600px 900px;margin:0}
+  }
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage">
+
+<!-- 1 표지 -->
+<section class="slide cover center">
+  <div class="kicker"><span class="pill">비개발자를 위한 6주 바이브 코딩 · 1주차</span></div>
+  <h1>내 상품·서비스 홍보 이미지를<br>반복 제작하는 앱 만들기</h1>
+  <p class="big" style="margin:34px 0 0;color:#e2f0f2">결과물 한 장이 아니라, <b style="color:var(--gold)">계속 쓰는 제작 도구</b>를 만듭니다</p>
+  <p class="small" style="margin-top:40px">2026년 10월 26일(월) · 강사 오쌤</p>
+  <div class="note">인사와 과정 소개. 6주 동안 매주 사업에 쓸 수 있는 앱을 하나씩 만든다는 점을 강조.</div>
+</section>
+
+<!-- 2 질문 -->
+<section class="slide center">
+  <div class="kicker"><span class="pill">시작하며</span></div>
+  <h1 style="font-size:70px">상품이나 서비스 안내 이미지,<br><span class="hl">몇 번이나 다시</span> 만들어 보셨나요?</h1>
+  <div class="row" style="margin-top:60px;justify-content:center">
+    <div class="box" style="width:330px"><h3>📷 사진 교체</h3></div>
+    <div class="box" style="width:330px"><h3>💰 가격 수정</h3></div>
+    <div class="box" style="width:330px"><h3>🔤 글자 다시 맞추기</h3></div>
+  </div>
+  <div class="note">손을 들게 하거나 한두 분께 경험을 물어보며 시작.</div>
+</section>
+
+<!-- 3 결과물 vs 도구 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">오늘 만들 것</span></div>
+  <h2>홍보 이미지 한 장 vs 홍보 이미지 <span class="hl">제작 도구</span></h2>
+  <div class="grid2 grow">
+    <div class="box no">
+      <span class="label no">지금까지</span>
+      <ul class="list x">
+        <li>필요할 때마다 새로 디자인</li>
+        <li>매번 배치·글자 크기 다시 조정</li>
+        <li>수정하려면 다시 부탁</li>
+      </ul>
+    </div>
+    <div class="box ok">
+      <span class="label ok">오늘부터</span>
+      <ul class="list check">
+        <li>사진과 내용만 입력</li>
+        <li>정해진 형식으로 자동 배치</li>
+        <li>상품이 바뀌어도 바로 새로 제작</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4 완성 앱 미리보기 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">완성 모습</span></div>
+  <h2 style="margin-bottom:24px">상품·서비스 홍보 카드 제작기</h2>
+  <div class="mock">
+    <div>
+      <div class="grid2" style="gap:18px">
+        <div class="field"><span>사진</span><div>📷 상품사진.jpg</div></div>
+        <div class="field"><span>사업명</span><div>온스튜디오</div></div>
+      </div>
+      <div class="field"><span>상품·서비스명</span><div>온라인 판매자를 위한 상품사진 촬영</div></div>
+      <div class="field"><span>한 줄 설명</span><div>판매 페이지와 SNS에 사용할 상품사진을 촬영합니다.</div></div>
+      <div class="field"><span>핵심 장점</span><div>상품 맞춤 촬영 · 보정 이미지 제공 · 게시용 파일 전달</div></div>
+      <div class="grid2" style="gap:18px">
+        <div class="field"><span>가격 안내</span><div>상담 후 견적 안내</div></div>
+        <div class="field"><span>문의</span><div>카카오톡 @온스튜디오</div></div>
+      </div>
+      <div style="margin-top:10px"><span class="btnmock">이미지로 저장</span><span class="btnmock" style="background:#7a8a96">초기화</span></div>
+    </div>
+    <div class="pcard">
+      <div class="photo"></div>
+      <div class="in">
+        <div class="biz">온스튜디오</div>
+        <div class="ttl">온라인 판매자를 위한<br>상품사진 촬영</div>
+        <div class="desc">판매 페이지와 SNS에 사용할 상품사진을 촬영합니다.</div>
+        <div class="pts">✓ 상품 맞춤 촬영<br>✓ 보정 이미지 제공<br>✓ 게시용 파일 전달</div>
+        <div class="cta">상담 후 견적 안내 · 카카오톡 @온스튜디오</div>
+      </div>
+    </div>
+  </div>
+  <div class="note">가능하면 실제 완성 앱을 띄워 사진과 문구를 바꾸는 시연을 함께 보여주기.</div>
+</section>
+
+<!-- 5 오늘의 순서 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">오늘의 순서</span></div>
+  <h2>바이브 코딩, 이렇게 진행합니다</h2>
+  <div class="steps grow" style="align-items:center">
+    <div class="stepbox"><div class="n">1</div><div class="t">아이디어<br>설명</div></div>
+    <div class="stepbox"><div class="n">2</div><div class="t">AI의<br>확인 질문</div></div>
+    <div class="stepbox"><div class="n">3</div><div class="t">1장 PRD<br>확인</div></div>
+    <div class="stepbox"><div class="n">4</div><div class="t">개발·<br>실행</div></div>
+    <div class="stepbox"><div class="n">5</div><div class="t">부분<br>수정</div></div>
+    <div class="stepbox"><div class="n">6</div><div class="t">저장·<br>검증</div></div>
+  </div>
+  <p class="mid" style="margin:30px 0 0;text-align:center">코드를 외우는 수업이 아닙니다. <b class="hl">설명하고, 확인하고, 고치는</b> 방법을 배웁니다.</p>
+</section>
+
+<!-- 6 오늘 하지 않는 것 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">오늘의 범위</span></div>
+  <h2>작지만 <span class="hl">끝까지 작동하는</span> 앱이 목표입니다</h2>
+  <div class="grid2 grow">
+    <div class="box ok"><span class="label ok">오늘 만드는 것</span>
+      <ul class="list check"><li>사진·문구 입력</li><li>홍보 카드 미리보기</li><li>이미지로 저장</li></ul>
+    </div>
+    <div class="box"><span class="label no">오늘 하지 않는 것</span>
+      <ul class="list x"><li>회원가입·결제</li><li>SNS 자동 게시</li><li>AI 이미지 생성</li></ul>
+    </div>
+  </div>
+  <p class="small" style="margin-top:22px">별도 사용료가 드는 외부 서비스는 연결하지 않습니다.</p>
+</section>
+
+<!-- PART 1 -->
+<section class="slide part">
+  <div class="pnum">PART 1</div>
+  <h1>무엇을 만들지<br>먼저 정리하기</h1>
+  <p>아이디어 설명 → AI의 질문 → PRD 확인</p>
+</section>
+
+<!-- 8 모호 vs 구체 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">AI에게 설명하는 법</span></div>
+  <h2>같은 부탁, 다른 결과</h2>
+  <div class="col grow" style="justify-content:center">
+    <div class="box no"><span class="label no">모호한 요청</span>
+      <p style="font-size:40px;color:var(--ink)">“우리 사업 홍보 앱 만들어줘.”</p>
+    </div>
+    <div class="box ok"><span class="label ok">구체적인 요청</span>
+      <p style="font-size:40px;color:var(--ink);line-height:1.45">“상품사진과 설명을 넣으면 <b class="hl">같은 형식의 홍보 카드</b>가 나오고,<br><b class="hl">이미지로 저장</b>할 수 있게 만들어줘.”</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9 4요소 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">앱을 말로 설명하는 4가지</span></div>
+  <h2>누가, 무엇을 넣고, 무엇을 얻는가</h2>
+  <div class="steps grow" style="align-items:stretch">
+    <div class="box" style="flex:1"><span class="label main">사용자</span><h3>누가</h3><p>상품·서비스를 홍보하는 사업자</p></div>
+    <div class="arrow">→</div>
+    <div class="box" style="flex:1"><span class="label main">입력</span><h3>무엇을 넣고</h3><p>사진, 설명, 가격, 문의 정보</p></div>
+    <div class="arrow">→</div>
+    <div class="box" style="flex:1"><span class="label main">처리</span><h3>어떻게</h3><p>정해진 디자인 규칙으로 배치</p></div>
+    <div class="arrow">→</div>
+    <div class="box accent" style="flex:1"><span class="label accent">결과</span><h3>무엇을 얻나</h3><p>고객에게 보여줄 홍보 이미지</p></div>
+  </div>
+  <p class="small" style="margin-top:22px">이 4가지는 앞으로 6주 동안 어떤 앱을 만들 때도 똑같이 씁니다.</p>
+</section>
+
+<!-- 10 PRD란 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">PRD란?</span></div>
+  <h2>AI가 엉뚱한 앱을 만들지 않도록<br>쓰는 <span class="hl">1장짜리 제작 설명서</span></h2>
+  <div class="grid3" style="grid-template-columns:repeat(4,1fr);gap:18px">
+    <div class="box"><h3>① 목적</h3><p>왜 만드나</p></div>
+    <div class="box"><h3>② 사용자</h3><p>누가 쓰나</p></div>
+    <div class="box"><h3>③ 입력</h3><p>무엇을 넣나</p></div>
+    <div class="box"><h3>④ 필수 기능</h3><p>꼭 만들 것</p></div>
+    <div class="box"><h3>⑤ 제외 기능</h3><p>이번엔 안 만들 것</p></div>
+    <div class="box"><h3>⑥ 디자인 기준</h3><p>어떻게 보여야 하나</p></div>
+    <div class="box accent" style="grid-column:span 2"><h3>⑦ 완료 기준</h3><p>무엇을 확인하면 “완성”인가</p></div>
+  </div>
+  <p class="small" style="margin-top:20px">직접 다 쓰지 않아도 됩니다. <b class="main">AI가 초안을 쓰고, 내가 확인</b>합니다.</p>
+</section>
+
+<!-- 11 실습1 -->
+<section class="slide practice">
+  <div class="kicker"><span class="pill orange">실습 1</span> AI가 먼저 질문하게 하기</div>
+  <div class="prompt"><button class="copy">복사</button>나는 상품이나 서비스를 홍보할 때마다 비슷한 안내 이미지를 만들고 있어.
+
+사진, 상품명, 장점, 가격, 문의 정보를 입력하면
+같은 디자인 형식으로 홍보 이미지를 만드는 앱이 필요해.
+
+<span class="em">아직 코드는 작성하지 마.</span>
+개발 전에 꼭 결정해야 할 내용을 <span class="em">최대 3개만 질문</span>해줘.
+
+답변을 받은 뒤 1장 분량의 PRD 초안을 작성해줘.
+PRD에는 목적, 사용자, 입력, 필수 기능, 제외 기능, 디자인 기준, 완료 기준을 넣어줘.
+<span class="em">내가 승인하기 전에는 개발을 시작하지 마.</span></div>
+  <div class="note">AI의 질문에는 강사가 공통 예시(온스튜디오)로 답변. 수강생별로 다르게 답하지 않음.</div>
+</section>
+
+<!-- 12 실습 사업 정보 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">오늘의 공통 예시</span> 가상의 사업</div>
+  <h2 style="margin-bottom:24px">온스튜디오 · 상품사진 촬영 서비스</h2>
+  <table class="t">
+    <tr><td>상품·서비스명</td><td>온라인 판매자를 위한 상품사진 촬영</td></tr>
+    <tr><td>한 줄 설명</td><td>판매 페이지와 SNS에 사용할 상품사진을 촬영합니다.</td></tr>
+    <tr><td>핵심 장점</td><td>상품 특성에 맞춘 촬영 · 보정 이미지 제공 · 게시용 파일 전달</td></tr>
+    <tr><td>가격 안내</td><td>상담 후 견적 안내</td></tr>
+    <tr><td>행동 문구</td><td>촬영 상담 문의하기</td></tr>
+    <tr><td>문의 정보</td><td>카카오톡 채널 @온스튜디오</td></tr>
+  </table>
+  <p class="small" style="margin-top:20px">수업용 가상 정보입니다. 실제 연락처나 고객정보는 넣지 않습니다.</p>
+</section>
+
+<!-- 13 PRD 확인 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">PRD 확인하기</span></div>
+  <h2>AI가 쓴 PRD, 이 세 가지만 보세요</h2>
+  <div class="grid3 grow">
+    <div class="box main"><span class="label main">빠진 것</span><h3>필요한 기능이<br>다 들어 있나?</h3></div>
+    <div class="box accent"><span class="label accent">끼어든 것</span><h3>요청 안 한 기능이<br>추가되지 않았나?</h3><p>회원가입, 결제 등</p></div>
+    <div class="box ok"><span class="label ok">확인 방법</span><h3>완성인지 눈으로<br>확인할 수 있나?</h3></div>
+  </div>
+  <p class="mid" style="margin-top:26px">AI가 모르는 가격·연락처를 <b class="hl">지어내지 않았는지</b>도 확인합니다.</p>
+</section>
+
+<!-- PART 2 -->
+<section class="slide part">
+  <div class="pnum">PART 2</div>
+  <h1>PRD대로<br>앱 만들기</h1>
+  <p>개발 → 실행 → 내용 입력</p>
+</section>
+
+<!-- 15 실습2 -->
+<section class="slide practice">
+  <div class="kicker"><span class="pill orange">실습 2</span> 확인한 PRD로 개발 시작</div>
+  <div class="prompt"><button class="copy">복사</button>지금 확인한 PRD를 최종 기준으로 개발해줘.
+
+먼저 구현 순서를 짧게 설명한 뒤, <span class="em">필수 기능만</span> 포함한 첫 버전을 만들어줘.
+
+- 가능하면 HTML 파일 하나로 실행되게 만들어줘.
+- 외부 이미지, 폰트, AI API는 사용하지 마.
+- 글자와 버튼은 크고 읽기 쉽게 만들어줘.
+- <span class="em">요청하지 않은 기능은 추가하지 마.</span>
+- 정해지지 않은 중요한 사항은 임의로 정하지 말고 질문해줘.
+
+완성 후 파일 위치와 실행 방법을 쉽게 설명하고,
+<span class="em">완료 기준별로 확인한 것과 확인하지 못한 것</span>을 구분해서 알려줘.</div>
+</section>
+
+<!-- 16 첫 실행 목표 -->
+<section class="slide center">
+  <div class="kicker"><span class="pill">첫 실행의 목표</span></div>
+  <h1 style="font-size:66px">지금은 예쁘게 만드는 시간이 아닙니다</h1>
+  <div class="row" style="margin-top:56px;align-items:center">
+    <div class="box main" style="width:360px"><h3>📷 사진을 넣고</h3></div>
+    <div class="arrow">→</div>
+    <div class="box main" style="width:360px"><h3>✏️ 글을 넣었을 때</h3></div>
+    <div class="arrow">→</div>
+    <div class="box ok" style="width:360px"><h3>🖼 결과가 나오면 성공</h3></div>
+  </div>
+  <p class="small" style="margin-top:44px">실행이 안 되면 손을 들어주세요. 준비된 파일로 바로 이어서 진행합니다.</p>
+</section>
+
+<!-- 17 확인 포인트 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">내용을 넣어보고 확인하기</span></div>
+  <h2>“예쁜가?”보다 <span class="hl">“고객이 이해하는가?”</span></h2>
+  <ul class="list check">
+    <li>무엇을 파는지 <b>바로</b> 알 수 있나요?</li>
+    <li>사진이 찌그러지지 않았나요?</li>
+    <li>핵심 장점이 잘 읽히나요?</li>
+    <li>가격·문의 정보가 빠지지 않았나요?</li>
+    <li>내용을 바꾸면 미리보기도 바뀌나요?</li>
+  </ul>
+</section>
+
+<!-- 18 휴식 -->
+<section class="slide center" style="background:var(--soft)">
+  <h1 style="font-size:96px">☕ 쉬는 시간</h1>
+  <p class="big" style="margin-top:24px;color:var(--sub)">5분 후에 다시 시작합니다</p>
+</section>
+
+<!-- PART 3 -->
+<section class="slide part">
+  <div class="pnum">PART 3</div>
+  <h1>원하는 대로<br>고치고 확인하기</h1>
+  <p>부분 수정 → 저장 → 검증 → 다시 사용</p>
+</section>
+
+<!-- 20 수정 요청 3요소 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">AI에게 수정을 맡기는 법</span></div>
+  <h2>좋은 수정 요청의 3요소</h2>
+  <div class="grid3 grow">
+    <div class="box main"><span class="label main">1. 무엇을</span><h3>바꾸고 싶은 부분</h3><p>“상품명이 작아서 눈에 안 띄어”</p></div>
+    <div class="box main"><span class="label main">2. 어떻게</span><h3>원하는 결과</h3><p>“고객이 무엇을 파는지 먼저 보이게”</p></div>
+    <div class="box accent"><span class="label accent">3. 유지할 것</span><h3>건드리면 안 되는 것</h3><p>“사진 선택, 저장 기능은 그대로”</p></div>
+  </div>
+  <p class="mid" style="margin-top:26px"><b class="hl">유지할 것</b>을 말하지 않으면, 잘 되던 기능까지 바뀔 수 있습니다.</p>
+</section>
+
+<!-- 21 실습3 -->
+<section class="slide practice">
+  <div class="kicker"><span class="pill orange">실습 3</span> 고객 입장에서 고치기</div>
+  <div class="prompt"><button class="copy">복사</button><span class="em">현재 앱의 다른 기능은 유지해줘.</span>
+
+고객이 무엇을 판매하는지 먼저 이해할 수 있도록
+사업명보다 <span class="em">상품·서비스명이 더 잘 보이게</span> 수정해줘.
+
+가격 안내, 행동 문구, 문의 정보도
+<span class="em">아래쪽에서 한눈에</span> 읽을 수 있게 정리해줘.
+
+새 기능은 추가하지 말고,
+기존 사진 선택, 입력 반영, 이미지 저장 기능은 유지해줘.
+수정 후 짧은 상품명과 긴 상품명을 각각 넣어 확인해줘.</div>
+</section>
+
+<!-- 22 저장 검증 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">저장하고 검증하기</span></div>
+  <h2>“됐다고 하니 완성”이 아니라<br><span class="hl">“확인했으니 완성”</span></h2>
+  <div class="grid2 grow">
+    <div class="box"><h3 class="main">이미지를 저장한 뒤 직접 열어보세요</h3>
+      <ul class="list check" style="margin-top:6px">
+        <li style="font-size:30px">사진과 글자가 모두 있나요?</li>
+        <li style="font-size:30px">미리보기와 똑같나요?</li>
+      </ul>
+    </div>
+    <div class="box accent"><h3>일부러 어렵게 시험해보기</h3>
+      <ul class="list check" style="margin-top:6px">
+        <li style="font-size:30px">아주 긴 상품명 넣기</li>
+        <li style="font-size:30px">가격 칸 비워두기</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 23 완료 기준 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">PRD 완료 기준 체크</span></div>
+  <h2>하나씩 확인해 봅시다</h2>
+  <ul class="list check">
+    <li>사진과 문구를 바꾸면 미리보기가 바뀐다</li>
+    <li>긴 상품명도 잘리거나 겹치지 않는다</li>
+    <li>가격을 비워도 정상적으로 보인다</li>
+    <li>저장한 이미지에 사진과 글자가 모두 있다</li>
+    <li>내용을 바꿔 두 번째 이미지를 만들 수 있다</li>
+  </ul>
+</section>
+
+<!-- 24 오류 시 -->
+<section class="slide practice">
+  <div class="kicker"><span class="pill orange">문제가 생기면</span> 증상을 그대로 알려주기</div>
+  <div class="prompt" style="flex:none"><button class="copy">복사</button><span class="em">이미지 저장 버튼을 눌렀는데 저장된 파일에서 사진이 빠져 있어.</span>
+
+현재 미리보기와 저장된 이미지를 비교해서 원인을 찾아줘.
+다른 기능은 유지하고 이 문제만 수정해줘.
+
+수정 후 사진과 글자가 모두 포함된 이미지가 저장되는지 확인해줘.
+확인하지 못한 부분은 확인했다고 말하지 마.</div>
+  <div class="grid2" style="margin-top:26px">
+    <div class="box"><p style="color:var(--ink)">💡 첫 줄만 <b class="hl">내가 본 증상</b>으로 바꾸면 됩니다</p></div>
+    <div class="box"><p style="color:var(--ink)">💡 잘 되던 버전은 <b class="hl">따로 보관</b>해 두세요</p></div>
+  </div>
+</section>
+
+<!-- 25 다시 쓰기 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">한 번 만든 도구, 계속 쓰기</span></div>
+  <h2>이번엔 <span class="hl">교육 상품</span>을 홍보해 봅시다</h2>
+  <table class="t">
+    <tr><td>상품·서비스명</td><td>초보 판매자를 위한 스마트폰 상품사진 촬영 교육</td></tr>
+    <tr><td>한 줄 설명</td><td>스마트폰으로 판매용 상품사진을 직접 찍는 방법을 배웁니다.</td></tr>
+    <tr><td>핵심 장점</td><td>소규모 실습 · 내 상품으로 촬영 · 보정 방법 안내</td></tr>
+    <tr><td>가격 안내</td><td>수강료 별도 안내</td></tr>
+    <tr><td>행동 문구</td><td>교육 일정 문의하기</td></tr>
+  </table>
+  <div class="row" style="margin-top:22px;align-items:center">
+    <span class="tag">파일 보관</span>
+    <span class="mid" style="font-size:28px">01_홍보카드앱_첫버전 · 02_홍보카드앱_수정완료</span>
+  </div>
+</section>
+
+<!-- PART 4 -->
+<section class="slide part">
+  <div class="pnum">PART 4</div>
+  <h1>내 사업에는<br>어떻게 쓸까?</h1>
+  <p>입력 항목과 배치만 바꾸면, 다른 도구가 됩니다</p>
+</section>
+
+<!-- 27 응용 1 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">응용 사례</span> 무엇을 바꾸면 어떤 도구가 될까?</div>
+  <div class="grid3 grow" style="grid-template-rows:1fr 1fr">
+    <div class="box"><span class="tag">상품 판매업</span><h3 style="margin-top:12px">상품 안내 이미지 제작기</h3><p>상품사진 · 규격 · 특징 · 가격</p></div>
+    <div class="box"><span class="tag">교육·컨설팅</span><h3 style="margin-top:12px">프로그램 제안 카드</h3><p>강의명 · 추천 대상 · 일정 · 수강료</p></div>
+    <div class="box"><span class="tag">시공·수리·방문</span><h3 style="margin-top:12px">서비스 안내 카드</h3><p>서비스 범위 · 이용 절차 · 가격 기준</p></div>
+    <div class="box"><span class="tag">음식·소매업</span><h3 style="margin-top:12px">메뉴·가격 안내 제작기</h3><p>메뉴 사진 · 구성 · 가격 · 주문 방법</p></div>
+    <div class="box"><span class="tag">B2B 사업</span><h3 style="margin-top:12px">거래처 제안 요약 카드</h3><p>고객 문제 · 제공 서비스 · 진행 방식</p></div>
+    <div class="box main"><span class="tag" style="background:#fff">여러분의 사업은?</span><h3 style="margin-top:12px">어떤 항목을 넣으면 될까요?</h3><p>떠올려 보세요</p></div>
+  </div>
+</section>
+
+<!-- 28 확장 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">한 단계 더 확장하면</span></div>
+  <h2>오늘 만든 앱에서 출발할 수 있는 방향</h2>
+  <div class="grid2 grow">
+    <div class="box"><h3>🎨 회사 색상·로고 고정</h3><p>언제 만들어도 같은 브랜드 느낌</p></div>
+    <div class="box"><h3>📐 크기 선택 추가</h3><p>인스타그램·블로그·배너용 이미지를 한 번에</p></div>
+    <div class="box"><h3>📋 상품 목록 파일 연결</h3><p>여러 상품의 카드를 한꺼번에 제작</p></div>
+    <div class="box"><h3>🌏 두 언어 입력</h3><p>해외 고객용 안내 이미지</p></div>
+  </div>
+  <p class="small" style="margin-top:18px">오늘 수업 범위는 아닙니다. 앞으로 이런 방향으로 키울 수 있다는 소개입니다.</p>
+</section>
+
+<!-- 29 정리 -->
+<section class="slide">
+  <div class="kicker"><span class="pill">오늘의 정리</span></div>
+  <h2>오늘 우리가 해낸 것</h2>
+  <ul class="list check">
+    <li>사업 문제를 <b>앱의 입력과 결과</b>로 설명했다</li>
+    <li>AI와 함께 <b>PRD</b>를 만들고 확인했다</li>
+    <li>앱을 만들고 <b>고객 입장에서</b> 고쳤다</li>
+    <li>저장된 결과를 <b>직접 확인</b>했다</li>
+    <li>다른 상품으로 <b>다시 사용</b>했다</li>
+  </ul>
+</section>
+
+<!-- 30 마무리 -->
+<section class="slide cover center">
+  <div class="kicker"><span class="pill">선택 과제</span></div>
+  <h1 style="font-size:62px">“내 사업에 맞게 바꾼다면,<br>입력 항목 3가지를 무엇으로 바꿀까?”</h1>
+  <p class="big" style="margin-top:30px;color:#e2f0f2">메모만 해 오셔도 충분합니다</p>
+  <div class="box" style="margin-top:50px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.25);width:1100px">
+    <p style="color:#fff;font-size:30px"><b style="color:var(--gold)">다음 주 예고</b> · 내 자료와 말투로 블로그·SNS 글 구성을 만드는 <b>콘텐츠 기획 앱</b></p>
+  </div>
+</section>
+
+</div></div>
+
+<div id="bar"></div>
+<div id="num"></div>
+<div id="hint">← → 이동 · F 전체화면 · N 메모</div>
+<div id="notes"></div>
+
+<script>
+  var slides=[].slice.call(document.querySelectorAll('.slide'));
+  var stage=document.getElementById('stage');
+  var cur=0;
+  // 꼬리표
+  slides.forEach(function(s){ if(!s.classList.contains('cover')&&!s.classList.contains('part')){ var m=document.createElement('div'); m.className='footer-mark'; m.textContent='1주차 · 홍보 카드 제작 앱'; s.appendChild(m);} });
+
+  function fit(){ var k=Math.min(window.innerWidth/1600, window.innerHeight/900); stage.style.transform='translate(-50%,-50%) scale('+k+')'; }
+  window.addEventListener('resize',fit); fit();
+
+  var notes=document.getElementById('notes');
+  function show(i){
+    cur=Math.max(0,Math.min(slides.length-1,i));
+    slides.forEach(function(s,j){ s.classList.toggle('active', j===cur); });
+    document.getElementById('num').textContent=(cur+1)+' / '+slides.length;
+    document.getElementById('bar').style.width=((cur+1)/slides.length*100)+'%';
+    var n=slides[cur].querySelector('.note');
+    notes.innerHTML=n?'<b>강사 메모</b> · '+n.innerHTML:'<b>강사 메모</b> · (없음)';
+    if(location.hash!=='#'+(cur+1)) history.replaceState(null,'','#'+(cur+1));
+  }
+  document.addEventListener('keydown',function(e){
+    if(['ArrowRight','PageDown',' ','Enter'].indexOf(e.key)>-1){ e.preventDefault(); show(cur+1); }
+    else if(['ArrowLeft','PageUp','Backspace'].indexOf(e.key)>-1){ e.preventDefault(); show(cur-1); }
+    else if(e.key==='Home') show(0);
+    else if(e.key==='End') show(slides.length-1);
+    else if(e.key==='f'||e.key==='F'){ if(!document.fullscreenElement) document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+    else if(e.key==='n'||e.key==='N'){ notes.classList.toggle('on'); }
+  });
+  document.getElementById('viewport').addEventListener('click',function(e){
+    if(e.target.closest('.copy')) return;
+    if(e.clientX>window.innerWidth*0.35) show(cur+1); else show(cur-1);
+  });
+  // 터치 스와이프
+  var sx=null;
+  document.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true});
+  document.addEventListener('touchend',function(e){ if(sx===null) return; var dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>50) show(cur+(dx<0?1:-1)); sx=null; });
+
+  // 복사
+  document.querySelectorAll('.copy').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var pre=btn.parentNode.cloneNode(true); pre.querySelector('.copy').remove();
+      var text=pre.innerText.trim();
+      var ok=function(){ btn.textContent='복사됨'; btn.classList.add('done'); setTimeout(function(){btn.textContent='복사'; btn.classList.remove('done');},1500); };
+      if(navigator.clipboard&&window.isSecureContext){ navigator.clipboard.writeText(text).then(ok,function(){fb(text);ok();}); } else { fb(text); ok(); }
+    });
+  });
+  function fb(t){ var a=document.createElement('textarea'); a.value=t; a.style.position='fixed'; a.style.opacity='0'; document.body.appendChild(a); a.select(); try{document.execCommand('copy');}catch(e){} a.remove(); }
+
+  var start=parseInt((location.hash||'#1').slice(1),10);
+  show(isNaN(start)?0:start-1);
+</script>
+</body>
+</html>
